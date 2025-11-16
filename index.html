@@ -1,0 +1,746 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fara'id Calculator / فرائض کیلکولیٹر</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        /* Fix for -webkit-text-size-adjust warning */
+        body { 
+            -webkit-text-size-adjust: 100%;
+            text-size-adjust: 100%;
+        }
+        
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        /* Ensuring Urdu text is readable */
+        body { font-family: 'Inter', 'Noto Sans Urdu', sans-serif; background-color: #f7f7f7; }
+        .card { background-color: white; box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); }
+        .btn-primary { background-color: #10B981; color: white; transition: background-color 0.3s; }
+        .btn-primary:hover { background-color: #059669; }
+        .input-style { border: 2px solid #D1D5DB; padding: 10px; border-radius: 8px; width: 100%; transition: border-color 0.3s; }
+        .input-style:focus { border-color: #10B981; outline: none; }
+        .spinner { border: 4px solid rgba(0, 0, 0, 0.1); border-top: 4px solid #10B981; border-radius: 50%; width: 24px; height: 24px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+        /* Responsive adjustments */
+        @media (min-width: 640px) {
+            .container-grid { grid-template-columns: 1fr 2fr; }
+        }
+        .disclaimer { 
+            background-color: #fffbeb; 
+            border: 1px solid #f9da69; 
+            color: #92400e; 
+            padding: 1rem; 
+            border-radius: 0.5rem;
+            margin-top: 1rem;
+        }
+        /* Style for Urdu text in table */
+        .urdu-text {
+            font-family: 'Noto Sans Urdu', 'Inter', sans-serif;
+            font-size: 0.95rem;
+            direction: rtl;
+            text-align: right;
+        }
+    </style>
+</head>
+<body class="p-4 sm:p-8 min-h-screen flex items-start justify-center">
+
+    <div id="app" class="w-full max-w-6xl"> <!-- Increased max-width for new columns -->
+        <header class="text-center mb-8">
+            <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800">Islamic Inheritance (Fara'id) Calculator / اسلامی وراثت (فرائض) کیلکولیٹر</h1>
+            <p class="text-gray-500 mt-2">Client-side distribution based on fractional shares, Residue (Asaba), and Return (Radd). / فریکشنل حصص، عصبہ (بقیہ) اور رد (واپسی) پر مبنی کلائنٹ سائیڈ تقسیم۔</p>
+        </header>
+
+        <div class="card p-6 sm:p-8 rounded-xl container-grid grid grid-cols-1 gap-6">
+            <!-- Input Panel -->
+            <div class="bg-gray-50 p-4 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Inputs / ان پٹ</h2>
+
+                <!-- Total Assets Input (Defaulted to 12 for Husband scenario) -->
+                <div class="mb-5">
+                    <label for="assets" class="block text-sm font-medium text-gray-700 mb-2">Total Distributable Assets (Units) / کل قابل تقسیم اثاثے (یونٹس)</label>
+                    <input type="number" id="assets" value="12" min="1" class="input-style" placeholder="e.g., 96000">
+                </div>
+
+                <!-- Heirs Selection -->
+                <div class="mb-5">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Select and Count Heirs / ورثاء کا انتخاب اور تعداد</label>
+                    <div class="space-y-2">
+                        
+                        <!-- Husband Input (Defaulted to 1 and selected) -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center w-1/2">
+                                <input type="checkbox" name="heirs" value="Husband" checked class="form-checkbox text-emerald-500 rounded-md" onchange="toggleSpouse('Husband')">
+                                <span class="ml-2 text-gray-600">Husband / شوہر</span>
+                            </label>
+                            <input type="number" id="count-Husband" value="1" min="0" max="1" class="input-style w-1/4 text-center p-1">
+                        </div>
+
+                        <!-- Wife Input (Defaulted to 0) -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center w-1/2">
+                                <input type="checkbox" name="heirs" value="Wife" class="form-checkbox text-emerald-500 rounded-md" onchange="toggleSpouse('Wife')">
+                                <span class="ml-2 text-gray-600">Wife / بیوی</span>
+                            </label>
+                            <input type="number" id="count-Wife" value="0" min="0" max="4" class="input-style w-1/4 text-center p-1" disabled>
+                        </div>
+
+                        <!-- Father Input (Defaulted to 0) -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center w-1/2">
+                                <input type="checkbox" name="heirs" value="Father" class="form-checkbox text-emerald-500 rounded-md" onchange="toggleCountInput('count-Father', this.checked, 1)">
+                                <span class="ml-2 text-gray-600">Father / والد</span>
+                            </label>
+                            <input type="number" id="count-Father" value="0" min="0" max="1" class="input-style w-1/4 text-center p-1" disabled>
+                        </div>
+
+                        <!-- Mother Input (Defaulted to 0) -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center w-1/2">
+                                <input type="checkbox" name="heirs" value="Mother" class="form-checkbox text-emerald-500 rounded-md" onchange="toggleCountInput('count-Mother', this.checked, 1)">
+                                <span class="ml-2 text-gray-600">Mother / والدہ</span>
+                            </label>
+                            <input type="number" id="count-Mother" value="0" min="0" max="1" class="input-style w-1/4 text-center p-1" disabled>
+                        </div>
+
+                        <!-- Sons Input (Defaulted to 0) -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center w-1/2">
+                                <input type="checkbox" name="heirs" value="Sons" class="form-checkbox text-emerald-500 rounded-md" onchange="toggleCountInput('count-Sons', this.checked)">
+                                <span class="ml-2 text-gray-600">Sons / بیٹے</span>
+                            </label>
+                            <input type="number" id="count-Sons" value="0" min="0" class="input-style w-1/4 text-center p-1" disabled>
+                        </div>
+
+                        <!-- Daughters Input (Defaulted to 2 and selected) -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center w-1/2">
+                                <input type="checkbox" name="heirs" value="Daughters" checked class="form-checkbox text-emerald-500 rounded-md" onchange="toggleCountInput('count-Daughters', this.checked)">
+                                <span class="ml-2 text-gray-600">Daughters / بیٹیاں</span>
+                            </label>
+                            <input type="number" id="count-Daughters" value="2" min="0" class="input-style w-1/4 text-center p-1">
+                        </div>
+
+                        <!-- Brothers Input (Full, Defaulted to 0) -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center w-1/2">
+                                <input type="checkbox" name="heirs" value="Brothers" class="form-checkbox text-emerald-500 rounded-md" onchange="toggleCountInput('count-Brothers', this.checked)">
+                                <span class="ml-2 text-gray-600">Brothers (Full) / بھائی (حقیقی)</span>
+                            </label>
+                            <input type="number" id="count-Brothers" value="0" min="0" class="input-style w-1/4 text-center p-1" disabled>
+                        </div>
+                        
+                        <!-- Sisters Input (Full, Defaulted to 0) -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center w-1/2">
+                                <input type="checkbox" name="heirs" value="Sisters" class="form-checkbox text-emerald-500 rounded-md" onchange="toggleCountInput('count-Sisters', this.checked)">
+                                <span class="ml-2 text-gray-600">Sisters (Full) / بہنیں (حقیقی)</span>
+                            </label>
+                            <input type="number" id="count-Sisters" value="0" min="0" class="input-style w-1/4 text-center p-1" disabled>
+                        </div>
+
+                        <!-- Uncle Input (Paternal, Defaulted to 1 and selected) -->
+                        <div class="flex items-center justify-between">
+                            <label class="flex items-center w-1/2">
+                                <input type="checkbox" name="heirs" value="Uncles" checked class="form-checkbox text-emerald-500 rounded-md" onchange="toggleCountInput('count-Uncles', this.checked)">
+                                <span class="ml-2 text-gray-600">Paternal Uncles / چچا</span>
+                            </label>
+                            <input type="number" id="count-Uncles" value="1" min="0" class="input-style w-1/4 text-center p-1">
+                        </div>
+
+                    </div>
+                </div>
+
+                <button id="calculate-btn" onclick="calculateInheritance()" class="w-full py-3 rounded-xl font-bold btn-primary flex items-center justify-center">
+                    <span id="btn-text">Calculate Shares / حصص کا حساب لگائیں</span>
+                    <div id="spinner" class="spinner ml-2 hidden"></div>
+                </button>
+                <div id="loading-message" class="text-center text-sm text-gray-500 mt-3 hidden">Performing client-side calculation... / کلائنٹ سائیڈ کیلکولیشن کی جا رہی ہے...</div>
+            </div>
+
+            <!-- Results Panel -->
+            <div class="bg-white p-4 sm:p-0 rounded-lg">
+                <h2 class="text-xl font-semibold mb-4 text-gray-700">Results Breakdown / نتائج کی تفصیل</h2>
+                <div id="results-table-container" class="overflow-x-auto rounded-lg border border-gray-200">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-100">
+                            <tr>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Heir / وارث</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Share Fraction / حصہ</th>
+                                <th class="px-4 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Calculation / حساب</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Rule (Urdu) / قاعدہ (اردو)</th>
+                                <th class="px-4 py-3 text-right text-xs font-medium text-gray-500 uppercase tracking-wider">Amount (Units) / رقم (یونٹس)</th>
+                            </tr>
+                        </thead>
+                        <tbody id="results-tbody" class="bg-white divide-y divide-gray-200">
+                            <tr>
+                                <td colspan="5" class="px-4 py-4 text-center text-sm text-gray-500">
+                                    Click "Calculate Shares / حصص کا حساب لگائیں" to see the distribution.
+                                </td>
+                            </tr>
+                        </tbody>
+                        <tfoot class="bg-gray-50">
+                            <tr>
+                                <th colspan="4" class="px-4 py-3 text-left text-sm font-bold text-gray-800">Total Distributed / کل تقسیم شدہ</th>
+                                <th id="total-distributed" class="px-4 py-3 text-right text-sm font-bold text-gray-800"></th>
+                            </tr>
+                            <tr>
+                                <th colspan="4" class="px-4 py-3 text-left text-sm font-bold text-red-600">Undistributed Remainder / غیر تقسیم شدہ بقیہ</th>
+                                <th id="remainder-amount" class="px-4 py-3 text-right text-sm font-bold text-red-600"></th>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
+
+                <div id="error-message" class="mt-4 p-3 bg-red-100 text-red-700 rounded-lg hidden"></div>
+                <div class="disclaimer text-sm mt-6">
+                    <strong>Disclaimer: / ڈس کلیمر:</strong> This is a simplified, non-API, client-side calculation. The logic prioritizes fixed shares, then residuary heirs (Asaba) like Sons, Father, Brothers, and Uncles, in order. The rule of **Radd (Return)** is only applied as a last resort if no residuary heirs are present. Complex cases are simplified. Consult an Islamic scholar for legal matters. / یہ ایک سادہ، نان-اے پی آئی، کلائنٹ سائیڈ کیلکولیشن ہے۔ منطق پہلے مقررہ حصص، پھر عصبہ (بقیہ) وارثوں جیسے بیٹے، والد، بھائی اور چچا کو ترتیب وار ترجیح دیتی ہے۔ **رد (واپسی)** کا اصول صرف آخری چارہ کے طور پر لاگو ہوتا ہے اگر کوئی عصبہ وارث موجود نہ ہوں۔ پیچیدہ معاملات کو آسان بنایا گیا ہے۔ قانونی معاملات کے لیے ایک اسلامی عالم سے مشورہ کریں۔
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script type="module">
+        // --- Core Application Logic ---
+
+        const resultsTbody = document.getElementById('results-tbody');
+        const totalDistributedEl = document.getElementById('total-distributed');
+        const remainderAmountEl = document.getElementById('remainder-amount');
+        const calculateBtn = document.getElementById('calculate-btn');
+        const btnText = document.getElementById('btn-text');
+        const spinner = document.getElementById('spinner');
+        const errorMessageEl = document.getElementById('error-message');
+        const loadingMessageEl = document.getElementById('loading-message');
+
+        /**
+         * Utility function to toggle the disabled state of count inputs and set default count.
+         */
+        window.toggleCountInput = function(id, isChecked, maxCount = Infinity) {
+            const input = document.getElementById(id);
+            if (input) {
+                input.disabled = !isChecked;
+                input.value = isChecked ? Math.max(1, parseInt(input.value) || 1) : 0; 
+                input.min = 0;
+                if (maxCount !== Infinity) {
+                    input.max = maxCount;
+                }
+            }
+        }
+        
+        /**
+         * NEW Function: Toggles spouse inputs to be mutually exclusive.
+         */
+        window.toggleSpouse = function(currentSpouse) {
+            if (currentSpouse === 'Husband' && document.querySelector('input[value="Husband"]').checked) {
+                // If Husband is checked, uncheck Wife
+                document.querySelector('input[value="Wife"]').checked = false;
+                toggleCountInput('count-Wife', false, 4);
+                toggleCountInput('count-Husband', true, 1);
+            } else if (currentSpouse === 'Wife' && document.querySelector('input[value="Wife"]').checked) {
+                // If Wife is checked, uncheck Husband
+                document.querySelector('input[value="Husband"]').checked = false;
+                toggleCountInput('count-Husband', false, 1);
+                toggleCountInput('count-Wife', true, 4);
+            } else {
+                 // Handle unchecking
+                 if (currentSpouse === 'Husband') {
+                    toggleCountInput('count-Husband', false, 1);
+                 } else if (currentSpouse === 'Wife') {
+                    toggleCountInput('count-Wife', false, 4);
+                 }
+            }
+        }
+
+        /**
+         * Utility function to format a number as a decimal string with two decimal places.
+         */
+        function formatAmount(amount) {
+            if (typeof amount !== 'number' || isNaN(amount)) return '0.00';
+            return amount.toFixed(2);
+        }
+
+        /**
+         * Utility function to format a fraction (e.g., 0.5 to "1/2")
+         */
+        function formatFraction(decimal) {
+            if (Math.abs(decimal - 0.5) < 1e-9) return '1/2';
+            if (Math.abs(decimal - 1/3) < 1e-9) return '1/3';
+            if (Math.abs(decimal - 2/3) < 1e-9) return '2/3';
+            if (Math.abs(decimal - 1/4) < 1e-9) return '1/4';
+            if (Math.abs(decimal - 1/8) < 1e-9) return '1/8';
+            if (Math.abs(decimal - 1/6) < 1e-9) return '1/6';
+            if (Math.abs(decimal - 1/12) < 1e-9) return '1/12';
+            if (decimal === 1) return '1/1';
+            return `${(decimal * 100).toFixed(1)}%`;
+        }
+        
+        /**
+         * Renders the calculated results into the HTML table.
+         */
+        function renderResults(heirShares, totalAssets) {
+            resultsTbody.innerHTML = '';
+            let distributedTotalRaw = 0; 
+
+            if (heirShares.length === 0) {
+                resultsTbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-sm text-red-500">No shares calculated. Select at least one heir. / کوئی حصہ شمار نہیں ہوا۔ کم از کم ایک وارث منتخب کریں۔</td></tr>';
+            } else {
+                heirShares.forEach(heir => {
+                    const amount = heir.fraction * totalAssets; 
+                    distributedTotalRaw += amount; 
+                    
+                    const row = resultsTbody.insertRow();
+                    row.className = 'hover:bg-gray-50 transition duration-150';
+                    row.innerHTML = `
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-gray-900">${heir.name}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600">${heir.shareText}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 font-mono">${heir.calculationText || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-600 urdu-text">${heir.ruleText || ''}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm text-gray-900 text-right font-mono">${formatAmount(amount)}</td>
+                    `;
+                });
+            }
+            
+            const remainderRaw = totalAssets - distributedTotalRaw;
+            totalDistributedEl.textContent = formatAmount(distributedTotalRaw);
+            const remainderAbsolute = Math.abs(remainderRaw);
+
+            // Using a slightly looser tolerance for float comparison
+            if (remainderAbsolute > 0.0001) { 
+                 const formattedRemainder = formatAmount(remainderRaw);
+                 remainderAmountEl.textContent = formattedRemainder;
+                 remainderAmountEl.classList.remove('text-green-600');
+                 remainderAmountEl.classList.add('text-red-600');
+                 errorMessageEl.textContent = `Warning: An amount of ${formattedRemainder} remains or is over-distributed. This client-side calculator simplifies complex Fara'id rules. / انتباہ: ${formattedRemainder} کی رقم باقی ہے یا زیادہ تقسیم ہو گئی ہے۔ یہ کلائنٹ سائیڈ کیلکولیٹر پیچیدہ فرائض کے قوانین کو آسان بناتا ہے۔`;
+                 errorMessageEl.classList.remove('hidden');
+            } else {
+                 remainderAmountEl.textContent = '0.00';
+                 remainderAmountEl.classList.remove('text-red-600');
+                 remainderAmountEl.classList.add('text-green-600');
+                 errorMessageEl.classList.add('hidden');
+            }
+        }
+
+
+        /**
+         * Core client-side Fara'id logic.
+         */
+        window.calculateInheritance = function() {
+            console.log('--- Inheritance Calculation Started ---');
+            const totalAssets = parseFloat(document.getElementById('assets').value);
+            const totalAssetsStr = totalAssets.toString();
+            errorMessageEl.classList.add('hidden');
+            
+            if (isNaN(totalAssets) || totalAssets <= 0) {
+                errorMessageEl.textContent = 'Please enter a valid, positive amount for Total Assets. / براہ کرم کل اثاثوں کے لیے ایک درست، مثبت رقم درج کریں۔';
+                errorMessageEl.classList.remove('hidden');
+                console.log('Validation Error: Invalid Total Assets.');
+                return;
+            }
+
+            // UI feedback
+            calculateBtn.disabled = true;
+            btnText.textContent = 'Calculating... / حساب کر رہا ہے...';
+            spinner.classList.remove('hidden');
+            loadingMessageEl.classList.remove('hidden');
+            resultsTbody.innerHTML = '<tr><td colspan="5" class="px-4 py-4 text-center text-sm text-gray-500">Calculating shares... / حصص کا حساب کر رہا ہے...</td></tr>';
+
+            // Get selected heirs and their counts
+            const selectedHeirs = Array.from(document.querySelectorAll('input[name="heirs"]:checked')).map(input => input.value);
+            
+            const getCount = (heirName) => {
+                const input = document.getElementById(`count-${heirName}`);
+                return selectedHeirs.includes(heirName) ? Math.max(0, parseInt(input.value) || 0) : 0;
+            };
+
+            const numHusband = getCount('Husband');
+            const numWife = getCount('Wife');
+            const numFather = getCount('Father');
+            const numMother = getCount('Mother');
+            const numSons = getCount('Sons');
+            const numDaughters = getCount('Daughters');
+            const numBrothers = getCount('Brothers');
+            const numSisters = getCount('Sisters');
+            const numUncles = getCount('Uncles'); 
+
+            const hasDescendants = numSons > 0 || numDaughters > 0;
+            const numTotalSiblings = numBrothers + numSisters;
+            
+            let heirShares = [];
+            let totalFixedFraction = 0;
+            let fixedShareDetails = []; // To store calculation strings for residue
+            
+            console.log('Heir Counts:', { numHusband, numWife, numFather, numMother, numSons, numDaughters, numUncles });
+            console.log('Has Descendants (Sons/Daughters):', hasDescendants);
+
+            // 1. Fixed Fractional Shares (Ashab al-Furud)
+            
+            // HUSBAND
+            if (numHusband > 0) {
+                console.log('>>> Fixed Shares: Husband check');
+                let shareFraction = hasDescendants ? 1/4 : 1/2;
+                let ruleText = hasDescendants ? "اولاد کی موجودگی میں شوہر کو 1/4 ملتا ہے۔" : "اولاد نہ ہونے پر شوہر کو 1/2 ملتا ہے۔";
+                
+                let calcText = `${formatFraction(shareFraction)} × ${totalAssetsStr} = ${formatAmount(shareFraction * totalAssets)}`;
+                heirShares.push({ 
+                    name: `Husband / شوہر (1)`, 
+                    fraction: shareFraction, 
+                    shareText: `${formatFraction(shareFraction)} (Fixed)`,
+                    calculationText: calcText,
+                    ruleText: ruleText
+                });
+                totalFixedFraction += shareFraction;
+                fixedShareDetails.push(`${formatAmount(shareFraction * totalAssets)} (Husband)`);
+                console.log(`Husband total fixed fraction added: ${shareFraction.toFixed(4)}`);
+            }
+
+            // WIFE
+            if (numWife > 0) {
+                console.log('>>> Fixed Shares: Wife check');
+                let shareFraction = hasDescendants ? 1/8 : 1/4;
+                let ruleText = hasDescendants ? "اولاد کی موجودگی میں بیوی کو 1/8 ملتا ہے۔" : "اولاد نہ ہونے پر بیوی کو 1/4 ملتا ہے۔";
+                const totalWifeFraction = shareFraction; 
+                shareFraction /= numWife; 
+
+                for(let i = 1; i <= numWife; i++) {
+                    let calcText = `${formatFraction(totalWifeFraction)} × ${totalAssetsStr} / ${numWife} = ${formatAmount(shareFraction * totalAssets)}`;
+                    heirShares.push({ 
+                        name: `Wife / بیوی (${i}/${numWife})`, 
+                        fraction: shareFraction, 
+                        shareText: `${formatFraction(totalWifeFraction)}/${numWife} (Fixed)`,
+                        calculationText: calcText,
+                        ruleText: ruleText
+                    });
+                    fixedShareDetails.push(`${formatAmount(shareFraction * totalAssets)} (Wife)`);
+                }
+                totalFixedFraction += totalWifeFraction;
+                console.log(`Wife total fixed fraction added: ${totalWifeFraction.toFixed(4)}`);
+            }
+
+            // FATHER
+            let fatherAlreadyHasFixedShare = false;
+            if (numFather > 0) {
+                if (hasDescendants && numSons > 0) {
+                    // Case 1: Father with Son(s)
+                    console.log('>>> Fixed Shares: Father gets 1/6 (due to Son(s))');
+                    let shareFraction = 1/6;
+                    heirShares.push({ 
+                        name: `Father / والد (1)`, 
+                        fraction: shareFraction, 
+                        shareText: '1/6 (Fixed / مقررہ)',
+                        calculationText: `1/6 × ${totalAssetsStr} = ${formatAmount(shareFraction * totalAssets)}`,
+                        ruleText: "بیٹے (بیٹوں) کی موجودگی میں باپ کو 1/6 ملتا ہے۔"
+                    });
+                    totalFixedFraction += shareFraction;
+                    fatherAlreadyHasFixedShare = true;
+                    fixedShareDetails.push(`${formatAmount(shareFraction * totalAssets)} (Father)`);
+                } else if (hasDescendants && numSons === 0) {
+                    // Case 2: Father with Daughter(s) only (1/6 + R)
+                    console.log('>>> Fixed Shares: Father gets 1/6 (due to Daughter(s))');
+                    let shareFraction = 1/6;
+                     heirShares.push({ 
+                        name: `Father / والد (1)`, 
+                        fraction: shareFraction, 
+                        shareText: '1/6 + Residue / 1/6 + بقیہ', // Text updated
+                        calculationText: `1/6 × ${totalAssetsStr} = ${formatAmount(shareFraction * totalAssets)}`,
+                        ruleText: "صرف بیٹی (بیٹیوں) کی موجودگی میں باپ کو 1/6 + بقیہ (عصبہ) ملتا ہے۔"
+                    });
+                    totalFixedFraction += shareFraction;
+                    fatherAlreadyHasFixedShare = true; // He has a fixed share
+                    // He will also be marked to receive residue later
+                    fixedShareDetails.push(`${formatAmount(shareFraction * totalAssets)} (Father Fixed)`);
+                } else {
+                    // Case 3: Father, no descendants
+                    console.log('>>> Father present (no descendants): Reserved for Asaba (Residue)');
+                }
+            }
+            
+            // MOTHER
+            if (numMother > 0) {
+                console.log('>>> Fixed Shares: Mother check');
+                let fraction;
+                let ruleText;
+                
+                if (hasDescendants || numTotalSiblings >= 2) { 
+                    fraction = 1/6;
+                    ruleText = "اولاد یا ایک سے زیادہ بہن بھائی کی موجودگی میں ماں کو 1/6 ملتا ہے۔";
+                    console.log('Mother gets 1/6.');
+                } else {
+                    fraction = 1/3; 
+                    ruleText = "اولاد یا ایک سے زیادہ بہن بھائی نہ ہونے پر ماں کو 1/3 ملتا ہے۔";
+                    console.log('Mother gets 1/3.');
+                }
+                
+                heirShares.push({ 
+                    name: `Mother / والدہ (1)`, 
+                    fraction: fraction, 
+                    shareText: `${formatFraction(fraction)} (Fixed / مقررہ)`,
+                    calculationText: `${formatFraction(fraction)} × ${totalAssetsStr} = ${formatAmount(fraction * totalAssets)}`,
+                    ruleText: ruleText
+                });
+                totalFixedFraction += fraction;
+                fixedShareDetails.push(`${formatAmount(fraction * totalAssets)} (Mother)`);
+            }
+
+            // DAUGHTER (Fixed Share)
+            if (numDaughters > 0 && numSons === 0) {
+                console.log('>>> Fixed Shares: Daughter(s) present (no Son)');
+                let totalFraction = numDaughters === 1 ? 1/2 : 2/3; 
+                let text = numDaughters === 1 ? '1/2' : '2/3';
+                let ruleText = numDaughters === 1 ? "ایک بیٹی (بیٹے کی عدم موجودگی میں) کو 1/2 ملتا ہے۔" : "ایک سے زیادہ بیٹیوں کو (بیٹے کی عدم موجودگی میں) 2/3 ملتا ہے۔";
+                
+                const sharePerDaughter = totalFraction / numDaughters;
+                for(let i = 1; i <= numDaughters; i++) {
+                    heirShares.push({ 
+                        name: `Daughter / بیٹی (${i}/${numDaughters})`, 
+                        fraction: sharePerDaughter, 
+                        shareText: `${text} / ${numDaughters} (Fixed)`, // Changed text
+                        calculationText: `(${text} × ${totalAssetsStr}) / ${numDaughters} = ${formatAmount(sharePerDaughter * totalAssets)}`,
+                        ruleText: ruleText
+                    });
+                    fixedShareDetails.push(`${formatAmount(sharePerDaughter * totalAssets)} (Daughter ${i})`);
+                }
+                totalFixedFraction += totalFraction;
+            } else if (numDaughters > 0 && numSons > 0) {
+                console.log('>>> Daughter(s) present with Son(s): They are Asaba (Residue) and get 0 fixed share.');
+            }
+
+            // FULL SISTER (Fixed Share)
+            if (numSisters > 0 && numFather === 0 && !hasDescendants && numBrothers === 0) {
+                console.log('>>> Fixed Shares: Full Sister(s) present (no blocking heirs)');
+                let totalFraction = numSisters === 1 ? 1/2 : 2/3;
+                let text = numSisters === 1 ? '1/2' : '2/3';
+                let ruleText = numSisters === 1 ? "ایک بہن (اولاد/باپ کی عدم موجودگی میں) کو 1/2 ملتا ہے۔" : "ایک سے زیادہ بہنوں کو 2/3 ملتا ہے۔";
+                
+                const sharePerSister = totalFraction / numSisters;
+                for(let i = 1; i <= numSisters; i++) {
+                    heirShares.push({ 
+                        name: `Sister / بہن (Full/حقیقی، ${i}/${numSisters})`, 
+                        fraction: sharePerSister, 
+                        shareText: `${text} / ${numSisters} (Fixed)`,
+                        calculationText: `(${text} × ${totalAssetsStr}) / ${numSisters} = ${formatAmount(sharePerSister * totalAssets)}`,
+                        ruleText: ruleText
+                    });
+                    fixedShareDetails.push(`${formatAmount(sharePerSister * totalAssets)} (Sister ${i})`);
+                }
+                totalFixedFraction += totalFraction;
+            }
+            
+            console.log('--- Total Fixed Fraction assigned:', totalFixedFraction.toFixed(4));
+
+            // 2. Residue (Asaba), Aul, and Radd Calculation
+            
+            let remainderFractionRaw = 1 - totalFixedFraction;
+            let residue = remainderFractionRaw > 0.000000001 ? remainderFractionRaw : 0; 
+            const totalFixedAmount = totalFixedFraction * totalAssets;
+            const residueAmount = residue * totalAssets;
+            let residueCalcString = `Residue = ${totalAssetsStr} - ${fixedShareDetails.join(' - ')} = ${formatAmount(residueAmount)}`;
+
+            console.log('Raw Remainder Fraction (1 - Fixed Total):', remainderFractionRaw.toFixed(4));
+
+            // Handle Aul (deficit)
+            if (remainderFractionRaw < -0.000000001) { 
+                console.log('*** AUL (Deficit) Case Triggered! Total fixed shares exceed 1. ***');
+                let totalClaim = totalFixedFraction;
+                heirShares.forEach(heir => {
+                    heir.fraction /= totalClaim;
+                    heir.shareText = heir.shareText.includes('Aul') ? heir.shareText : `${heir.shareText.split('(')[0].trim()} (Aul)`;
+                    heir.calculationText = `Share reduced proportionally.`;
+                    heir.ruleText = "جب حصص کل اثاثوں سے بڑھ جائیں (عول)، تو تمام حصص کو متناسب طور پر کم کر دیا جاتا ہے۔";
+                });
+                residue = 0; 
+                console.log('All shares scaled down proportionally (Aul).');
+            }
+            
+            let residueDistributed = false; 
+
+            if (residue > 0) {
+                console.log('*** Residue (Baqiya) exists:', residue.toFixed(4), '***');
+                
+                // --- Asaba Priority Check ---
+
+                // Priority 1: High Priority Asaba (Sons, Father)
+                const hasSons = numSons > 0;
+                const fatherIsAsaba = numFather > 0 && !fatherAlreadyHasFixedShare; // Father with no descendants
+                const fatherIsFixedPlusAsaba = numFather > 0 && fatherAlreadyHasFixedShare && numSons === 0; // Father with daughter(s) only
+
+                console.log('Check: Has Sons:', hasSons);
+                console.log('Check: Father is Asaba (no descendants):', fatherIsAsaba);
+                console.log('Check: Father is 1/6 + R (with daughters):', fatherIsFixedPlusAsaba);
+
+                if (hasSons) {
+                    console.log('*** Path 1: Distributing to Sons & Daughters (Asaba bi ghairihi) ***');
+                    heirShares = heirShares.filter(h => !(h.name.includes('Daughter') && h.shareText.includes('Fixed')));
+                    
+                    const totalResidueParts = (numSons * 2) + numDaughters;
+                    const residuePerPart = residue / totalResidueParts;
+                    const ruleText = "بیٹا (بیٹے) بیٹی (بیٹیوں) کے ساتھ 2:1 کے تناسب سے بقیہ حصہ (عصبہ) لیتے ہیں۔";
+                    
+                    for(let i = 1; i <= numSons; i++) {
+                        heirShares.push({ 
+                            name: `Son / بیٹا (${i}/${numSons})`, 
+                            fraction: residuePerPart * 2, 
+                            shareText: `Residue / بقیہ (عصبہ, 2/${totalResidueParts})`,
+                            calculationText: `${formatAmount(residueAmount)} × 2 / ${totalResidueParts} = ${formatAmount(residuePerPart * 2 * totalAssets)}`,
+                            ruleText: ruleText
+                        });
+                    }
+                    for(let i = 1; i <= numDaughters; i++) {
+                        heirShares.push({ 
+                            name: `Daughter / بیٹی (${i}/${numDaughters})`, 
+                            fraction: residuePerPart, 
+                            shareText: `Residue / بقیہ (عصبہ, 1/${totalResidueParts})`,
+                            calculationText: `${formatAmount(residueAmount)} × 1 / ${totalResidueParts} = ${formatAmount(residuePerPart * totalAssets)}`,
+                            ruleText: ruleText
+                        });
+                    }
+                    residueDistributed = true; 
+                } 
+                else if (fatherIsAsaba) { 
+                    console.log('>>> Distributing Residue to Father (Asaba bi Nafsihi).');
+                    heirShares.push({ 
+                        name: 'Father / والد (1)', 
+                        fraction: residue, 
+                        shareText: 'Residue / بقیہ (Asaba / عصبہ)',
+                        calculationText: residueCalcString,
+                        ruleText: "اولاد نہ ہونے پر باپ عصبہ بنتا ہے اور بقیہ تمام حصہ لیتا ہے۔"
+                    });
+                    residueDistributed = true;
+                }
+                else if (fatherIsFixedPlusAsaba) {
+                    console.log('>>> Distributing Residue to Father (1/6 + R).');
+                    // Father already has 1/6, we need to add the residue to his entry
+                    const fatherEntry = heirShares.find(h => h.name.includes('Father'));
+                    fatherEntry.fraction += residue; // Add residue fraction
+                    fatherEntry.calculationText = `(1/6 × ${totalAssetsStr}) + ${formatAmount(residueAmount)} = ${formatAmount(fatherEntry.fraction * totalAssets)}`;
+                    // Rule text is already set
+                    residueDistributed = true;
+                }
+                
+                // Priority 2: Mid-level Asaba (Brothers)
+                if (!residueDistributed && (numBrothers > 0 || numSisters > 0) && numFather === 0 && !hasDescendants) {
+                    console.log('*** Path 2: Distributing to Mid Priority Asaba (Brothers/Sisters) ***');
+
+                    if (numBrothers > 0) {
+                        console.log('>>> Distributing Residue to Brothers and Sisters (Asaba bi ghairihi).');
+                        heirShares = heirShares.filter(h => !(h.name.includes('Sister') && h.shareText.includes('Fixed')));
+
+                        const totalResidueParts = (numBrothers * 2) + numSisters; 
+                        const residuePerPart = residue / totalResidueParts;
+                        const ruleText = "باپ اور بیٹے کی عدم موجودگی میں، بھائی بہن کے ساتھ 2:1 کے تناسب سے بقیہ حصہ (عصبہ) لیتے ہیں۔";
+                        
+                        for(let i = 1; i <= numBrothers; i++) {
+                             heirShares.push({ 
+                                name: `Brother / بھائی (Full/حقیقی, ${i}/${numBrothers})`, 
+                                fraction: residuePerPart * 2, 
+                                shareText: `Residue / بقیہ (عصبہ, 2/${totalResidueParts})`,
+                                calculationText: `${formatAmount(residueAmount)} × 2 / ${totalResidueParts} = ${formatAmount(residuePerPart * 2 * totalAssets)}`,
+                                ruleText: ruleText
+                            });
+                        }
+                        for(let i = 1; i <= numSisters; i++) {
+                             heirShares.push({ 
+                                name: `Sister / بہن (Full/حقیقی, ${i}/${numSisters})`, 
+                                fraction: residuePerPart, 
+                                shareText: `Residue / بقیہ (عصبہ, 1/${totalResidueParts})`,
+                                calculationText: `${formatAmount(residueAmount)} × 1 / ${totalResidueParts} = ${formatAmount(residuePerPart * totalAssets)}`,
+                                ruleText: ruleText
+                            });
+                        }
+                        residueDistributed = true;
+                    }
+                    // Note: Logic for 'Sisters as Asaba with Daughters' (Asaba ma'a ghairihi) is complex and omitted here.
+                }
+
+                
+                // Priority 3: Low-level Asaba (Uncle)
+                if (!residueDistributed && numUncles > 0) {
+                     console.log('*** Path 3: Distributing to Low Priority Asaba (Uncle) ***');
+                     const uncleShare = residue / numUncles;
+                     const ruleText = "کوئی قریبی عصبہ (بیٹا، باپ، بھائی) نہ ہونے پر چچا بقیہ حصہ لیتا ہے۔";
+                     for(let i=1; i<=numUncles; i++) {
+                         heirShares.push({ 
+                            name: `Paternal Uncle / چچا (${i}/${numUncles})`, 
+                            fraction: uncleShare, 
+                            shareText: `Residue / بقیہ (Asaba / عصبہ)`,
+                            calculationText: `${residueCalcString} / ${numUncles}`,
+                            ruleText: ruleText
+                        });
+                     }
+                    residueDistributed = true; 
+                }
+
+                // Priority 4: RADD (Return)
+                if (!residueDistributed) {
+                    console.log('*** Path 4: No Asaba found. Checking for RADD (Return) ***');
+                    
+                    // Radd applies to non-spouse fixed heirs
+                    const raddEligibleShares = heirShares.filter(h => !h.name.includes('Wife') && !h.name.includes('Husband'));
+                    const nonSpouseFixedClaim = raddEligibleShares.reduce((sum, heir) => sum + heir.fraction, 0);
+                    
+                    console.log('Radd Eligible Heirs count:', raddEligibleShares.length);
+                    console.log('Non-Spouse Fixed Claim:', nonSpouseFixedClaim.toFixed(4));
+
+                    if (raddEligibleShares.length > 0 && nonSpouseFixedClaim > 0.000000001) {
+                        
+                        console.log('>>> RADD (Return) Logic Triggered! Redistributing residue among non-spouse fixed heirs.');
+
+                        const spouseTotalFraction = heirShares.reduce((sum, heir) => sum + (h.name.includes('Wife') || h.name.includes('Husband') ? heir.fraction : 0), 0);
+                        const totalFractionForRadd = 1 - spouseTotalFraction; 
+                        const ruleText = "کوئی عصبہ وارث نہ ہونے پر بقیہ حصہ مقررہ وارثین (شوہر/بیوی کے علاوہ) کو ان کے حصص کے تناسب سے واپس (رد) کر دیا جاتا ہے۔";
+
+                        heirShares = heirShares.filter(h => h.name.includes('Wife') || h.name.includes('Husband')); 
+
+                        raddEligibleShares.forEach(heir => {
+                            const newFraction = (heir.fraction / nonSpouseFixedClaim) * totalFractionForRadd;
+                            heirShares.push({
+                                name: heir.name,
+                                fraction: newFraction,
+                                shareText: `${heir.shareText.split('(')[0].trim()} (Radd)`,
+                                calculationText: `(${formatFraction(heir.fraction)} / ${nonSpouseFixedClaim.toFixed(2)}) × ${totalFractionForRadd.toFixed(2)}`,
+                                ruleText: ruleText
+                            });
+                            console.log(`Radd Adjustment: ${heir.name} original fraction ${heir.fraction.toFixed(4)} adjusted to ${newFraction.toFixed(4)}`);
+                        });
+
+                        residueDistributed = true;
+                        residue = 0;
+                    }
+                }
+                
+                if (!residueDistributed) {
+                    console.log('Residue remains, but no Asaba or Radd-eligible heirs present. Residue is undistributed.');
+                }
+            } else {
+                console.log('No residue remaining (either Aul occurred or fixed shares perfectly consumed the assets).');
+            }
+
+            // 3. Final render
+            setTimeout(() => {
+                const finalHeirShares = heirShares;
+                
+                renderResults(finalHeirShares, totalAssets);
+
+                // UI feedback reset
+                calculateBtn.disabled = false;
+                btnText.textContent = 'Calculate Shares / حصص کا حساب لگائیں';
+                spinner.classList.add('hidden');
+                loadingMessageEl.classList.add('hidden');
+                console.log('--- Inheritance Calculation Complete ---');
+                console.table(finalHeirShares);
+            }, 500);
+        };
+
+        // Run calculation on load for an initial view
+        window.onload = () => {
+             document.querySelectorAll('input[type="checkbox"][name="heirs"]').forEach(checkbox => {
+                 const id = 'count-' + checkbox.value;
+                 const maxCount = document.getElementById(id).max ? parseInt(document.getElementById(id).max) : Infinity;
+                 toggleCountInput(id, checkbox.checked, maxCount);
+             });
+             
+             calculateInheritance();
+        };
+
+    </script>
+</body>
+</html>
